@@ -1,0 +1,14 @@
+{
+  "view.workspace": "SSH Workspace",
+  "command.add": "RShell: New SSH Session",
+  "command.open": "RShell: Open SSH Workspace",
+  "config.uiLanguage": "UI language for RShell panels and prompts. Reload the window after changing. VS Code command/view labels follow the VS Code display language.",
+  "language.auto": "Follow VS Code",
+  "language.zh": "Simplified Chinese",
+  "language.en": "English",
+  "config.localDirectoryMode": "Local directory used each time a file transfer window opens. Workspace mode selects the active file’s local project folder, or the first local workspace folder. Falls back to the user home directory when unavailable.",
+  "directory.home": "User home directory",
+  "directory.workspace": "Current project directory",
+  "directory.custom": "Custom directory",
+  "config.localDirectory": "Absolute local directory for custom mode. Supports ~ for the user home directory. Applies to newly opened transfer windows."
+}

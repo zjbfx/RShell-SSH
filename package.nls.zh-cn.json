@@ -1,0 +1,14 @@
+{
+  "view.workspace": "SSH 工作台",
+  "command.add": "RShell: 新建 SSH 会话",
+  "command.open": "RShell: 打开 SSH 工作台",
+  "config.uiLanguage": "RShell 界面与提示的语言。修改后重新加载窗口生效。VS Code 命令和视图名称跟随 VS Code 显示语言。",
+  "language.auto": "跟随 VS Code",
+  "language.zh": "简体中文",
+  "language.en": "English",
+  "config.localDirectoryMode": "每次打开文件传输窗口时使用的本地目录。项目模式优先使用当前文件所属的本地项目，否则使用第一个本地项目目录；不可用时回退到用户主目录。",
+  "directory.home": "用户主目录",
+  "directory.workspace": "当前项目目录",
+  "directory.custom": "指定目录",
+  "config.localDirectory": "指定目录模式下的本地绝对路径，支持 ~ 表示用户主目录。对新打开的文件传输窗口生效。"
+}

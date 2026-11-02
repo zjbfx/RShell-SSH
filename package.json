@@ -1,0 +1,131 @@
+{
+  "name": "rshell",
+  "displayName": "RShell SSH",
+  "description": "Persistent global SSH sessions with a custom three-column SSH terminal",
+  "version": "0.1.0",
+  "publisher": "rshell-local",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onView:rshell.workspace"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "rshell",
+          "title": "RShell",
+          "icon": "media/terminal.svg"
+        }
+      ]
+    },
+    "views": {
+      "rshell": [
+        {
+          "id": "rshell.workspace",
+          "name": "%view.workspace%",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "rshell.add",
+        "title": "%command.add%"
+      },
+      {
+        "command": "rshell.open",
+        "title": "%command.open%"
+      }
+    ],
+    "configuration": {
+      "title": "RShell",
+      "properties": {
+        "rshell.uiLanguage": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "zh-CN",
+            "en"
+          ],
+          "default": "auto",
+          "scope": "application",
+          "markdownDescription": "%config.uiLanguage%",
+          "enumDescriptions": [
+            "%language.auto%",
+            "%language.zh%",
+            "%language.en%"
+          ]
+        },
+        "rshell.transfer.localDirectoryMode": {
+          "type": "string",
+          "enum": [
+            "home",
+            "workspace",
+            "custom"
+          ],
+          "default": "home",
+          "scope": "window",
+          "markdownDescription": "%config.localDirectoryMode%",
+          "enumDescriptions": [
+            "%directory.home%",
+            "%directory.workspace%",
+            "%directory.custom%"
+          ]
+        },
+        "rshell.transfer.localDirectory": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "markdownDescription": "%config.localDirectory%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "check": "node scripts/check.js",
+    "package": "vsce package --allow-missing-repository --no-rewrite-relative-links",
+    "build:i18n": "node scripts/build-i18n.js",
+    "test": "node --test test/*.test.js",
+    "vscode:prepublish": "npm run build:i18n && npm run check && npm test",
+    "package:verify": "node scripts/verify-package.js"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^4.1.0"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "ssh2": "^1.17.0"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "ssh",
+    "sftp",
+    "terminal",
+    "session",
+    "file-transfer"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "overrides": {
+    "@vscode/vsce": {
+      "minimatch": "^11.0.1"
+    }
+  },
+  "icon": "media/rshell-red-panda.png"
+}
