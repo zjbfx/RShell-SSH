@@ -3,7 +3,7 @@
   "displayName": "RShell SSH",
   "description": "Persistent global SSH sessions with a custom three-column SSH terminal",
   "version": "1.0.0",
-  "publisher": "rshell-local",
+  "publisher": "JefferyVonYu",
   "engines": {
     "vscode": "^1.95.0"
   },
