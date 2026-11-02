@@ -2,7 +2,7 @@
   "name": "rshell",
   "displayName": "RShell SSH",
   "description": "Persistent global SSH sessions with a custom three-column SSH terminal",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "rshell-local",
   "engines": {
     "vscode": "^1.95.0"
@@ -89,7 +89,7 @@
   },
   "scripts": {
     "check": "node scripts/check.js",
-    "package": "vsce package --allow-missing-repository --no-rewrite-relative-links",
+    "package": "vsce package",
     "build:i18n": "node scripts/build-i18n.js",
     "test": "node --test test/*.test.js",
     "vscode:prepublish": "npm run build:i18n && npm run check && npm test",
@@ -127,5 +127,14 @@
       "minimatch": "^11.0.1"
     }
   },
-  "icon": "media/rshell-red-panda.png"
+  "icon": "media/rshell-red-panda.png",
+  "author": "Jeffery <zhanjiabianfu@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zjbfx/RShell-SSH.git"
+  },
+  "homepage": "https://github.com/zjbfx/RShell-SSH#readme",
+  "bugs": {
+    "url": "https://github.com/zjbfx/RShell-SSH/issues"
+  }
 }

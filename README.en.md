@@ -17,7 +17,7 @@ An SSH and SFTP workspace for VS Code: **Sessions | SSH terminal | Instances**, 
 
 Requires desktop VS Code 1.95+, SSH access and an enabled SFTP subsystem. System ssh/sftp tools are not required. Browser-based VS Code and untrusted workspaces are not supported.
 
-The repository still needs a real Marketplace publisher before public release. To build locally with Node.js 22:
+Version 1.0.0 is being prepared for release; Marketplace availability is subject to publication. To build locally with Node.js 22:
 
 ```sh
 npm ci --omit=optional

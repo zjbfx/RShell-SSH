@@ -18,7 +18,7 @@ RShell 是 VS Code 内的 SSH 与 SFTP 工作台。底部面板按 **会话列�
 
 ## 安装与开始使用
 
-当前仓库尚未配置正式 Marketplace publisher，不能据此认为已上架。
+当前准备发布 1.0.0，商店发布状态以 Marketplace 页面为准。
 
 从源码构建：安装 Node.js 22 和 npm，运行：
 
