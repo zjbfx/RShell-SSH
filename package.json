@@ -127,7 +127,7 @@
       "minimatch": "^11.0.1"
     }
   },
-  "icon": "media/rshell-red-panda.png",
+  "icon": "media/rshell-icon-1024.png",
   "author": "Jeffery <zhanjiabianfu@gmail.com>",
   "repository": {
     "type": "git",

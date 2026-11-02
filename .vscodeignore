@@ -26,3 +26,5 @@ node_modules/**/.travis.yml
 node_modules/**/Jenkinsfile
 node_modules/**/binding.gyp
 node_modules/ssh2/install.js
+
+media/rshell-red-panda.png
