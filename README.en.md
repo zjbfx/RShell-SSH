@@ -38,7 +38,7 @@ Terminal fonts follow `terminal.integrated.fontFamily`, `fontSize`, `lineHeight`
 
 Profiles, private-key paths and accepted host fingerprints use global extension storage. Passwords use SecretStorage, are scoped to the profile and endpoint, and are removed when that endpoint is changed or the profile is deleted. Private keys are read locally; passphrases are prompted each time. Changed server host keys are rejected. No telemetry or analytics is implemented. See [Privacy](PRIVACY.md) and [Security](SECURITY.md).
 
-SSH Agent, jump hosts, proxies, forwarding, SSH config import and multi-factor/keyboard-interactive authentication are not supported. Drag-and-drop is internal to the transfer window. Use Upload files… / Upload folder… and Download to… for system files. Symlinks and special files are rejected. Transfers are sequential, have no cancellation/resume or atomic overwrite, and may leave partial files after errors. Permissions/timestamps are not guaranteed to be preserved. Connections and task history do not survive closing/reloading. Cross-platform manual verification remains outstanding.
+SSH Agent, jump hosts, proxies, forwarding, SSH config import and multi-factor/keyboard-interactive authentication are not supported. Drag-and-drop is internal to the transfer window. Use Upload files… / Upload folder… and Download to… for system files. Symlinks and special files are rejected. Transfers are sequential, have no cancellation/resume or atomic overwrite, and may leave partial files after errors. Permissions/timestamps are not guaranteed to be preserved. Connections and task history do not survive closing/reloading.
 
 ## Development
 
