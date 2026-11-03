@@ -31,9 +31,9 @@ window.addEventListener('message',({data:m})=>{
  const sessions=document.querySelector('#sessions');sessions.replaceChildren();
  for(const s of m.sessions){
   const row=document.createElement('div');row.className='list-row';row.tabIndex=0;row.textContent='▸  '+s.name;row.title=s.user+'@'+s.host+':'+s.port;
-  row.onclick=()=>{sessions.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'));row.classList.add('selected');};
+  row.onclick=()=>{send('selectSession',s.id);sessions.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'));row.classList.add('selected');};
   row.ondblclick=()=>send('connect',s.id);row.onkeydown=e=>{if(e.key==='Enter')send('connect',s.id);if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();const r=row.getBoundingClientRect();showMenu(r.left,r.bottom,sessionActions(s));}};
-  row.oncontextmenu=e=>{e.preventDefault();row.focus();showMenu(e.clientX,e.clientY,sessionActions(s));};sessions.append(row);
+  row.oncontextmenu=e=>{e.preventDefault();row.onclick();row.focus();showMenu(e.clientX,e.clientY,sessionActions(s));};sessions.append(row);
  }
  const list=document.querySelector('#instances');list.replaceChildren();
  for(const i of m.instances){

@@ -43,6 +43,8 @@ function render(m){
   row.onkeydown=e=>{if(e.key==='Enter'&&entry.directory)send('browse',{side:m.side,name:entry.name});};list.append(row);
  }
  const transfer=document.createElement('button');transfer.textContent=m.side==='local'?'传输选中 →':'← 传输选中';transfer.onclick=()=>{if(!busy&&selected[m.side].size)send('transfer',{from:m.side,names:[...selected[m.side]]});};
+ toolbar.append(control('上传文件…','选择本地文件上传到当前目录',()=>send('upload',{side:m.side,folders:false})),control('上传文件夹…','选择本地文件夹上传到当前目录',()=>send('upload',{side:m.side,folders:true})));
+ toolbar.append(control('下载到…','下载选中项到本地文件夹',()=>{if(selected[m.side].size)send('download',{from:m.side,names:[...selected[m.side]]});}));
  transfer.className='transfer-action';toolbar.append(transfer);section.append(heading,toolbar,bar,crumbs,list);
  section.ondragover=e=>{if(!busy&&[...e.dataTransfer.types].includes('application/x-rshell-files')){e.preventDefault();e.dataTransfer.dropEffect='copy';section.classList.add('drop-target');}};
  section.ondragleave=e=>{if(!section.contains(e.relatedTarget))section.classList.remove('drop-target');};

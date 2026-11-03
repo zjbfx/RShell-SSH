@@ -10,5 +10,6 @@
   "directory.home": "User home directory",
   "directory.workspace": "Current project directory",
   "directory.custom": "Custom directory",
-  "config.localDirectory": "Absolute local directory for custom mode. Supports ~ for the user home directory. Applies to newly opened transfer windows."
+  "config.localDirectory": "Absolute local directory for custom mode. Supports ~ for the user home directory. Applies to newly opened transfer windows.",
+  "command.files": "RShell: Open File Transfer"
 }

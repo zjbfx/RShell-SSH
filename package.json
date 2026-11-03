@@ -2,7 +2,7 @@
   "name": "rshell",
   "displayName": "RShell SSH",
   "description": "Persistent global SSH sessions with a custom three-column SSH terminal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "JefferyVonYu",
   "engines": {
     "vscode": "^1.95.0"
@@ -41,6 +41,10 @@
       {
         "command": "rshell.open",
         "title": "%command.open%"
+      },
+      {
+        "command": "rshell.files",
+        "title": "%command.files%"
       }
     ],
     "configuration": {

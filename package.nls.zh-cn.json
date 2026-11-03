@@ -10,5 +10,6 @@
   "directory.home": "用户主目录",
   "directory.workspace": "当前项目目录",
   "directory.custom": "指定目录",
-  "config.localDirectory": "指定目录模式下的本地绝对路径，支持 ~ 表示用户主目录。对新打开的文件传输窗口生效。"
+  "config.localDirectory": "指定目录模式下的本地绝对路径，支持 ~ 表示用户主目录。对新打开的文件传输窗口生效。",
+  "command.files": "RShell: 打开文件传输"
 }

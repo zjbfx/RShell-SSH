@@ -7,7 +7,7 @@ const {openTransfer}=require('./transfer');
 const {passwordKey,loadPassword,rememberPassword}=require('./credentials');
 function activate(ctx) {
  const language=resolveLanguage(v.workspace?.getConfiguration('rshell').get('uiLanguage','auto')||'auto',v.env?.language||'zh-CN');setLanguage(language);
- let sessions=ctx.globalState.get('sessions',[]), view, active, viewReady=false, pendingEditor;
+ let sessions=ctx.globalState.get('sessions',[]), view, active, viewReady=false, pendingEditor, selectedSession;
  const instances=new Map();
  const closing=new Set();
  const post=m=>view?.webview.postMessage(m);
@@ -96,7 +96,7 @@ function activate(ctx) {
    if(instance.status==='连接中')instance.client.destroy();else instance.client.end();
   }finally{closing.delete(id);}
  }
- async function transfer(i) {
+ async function transfer(i,sessionId=selectedSession) {
   await openTransfer(ctx,i,()=>sessions,async id=>{
    const session=sessions.find(s=>s.id===id);if(!session)throw Error('会话不存在');
    const existing=[...instances.values()].find(x=>x.session.id===id&&x.status==='已连接'&&passwordKey(x.session)===passwordKey(session));
@@ -110,9 +110,9 @@ function activate(ctx) {
     if(action!==t('使用新密码'))throw Error('已取消密码输入');
     force=true;
    }
-  });
+  },sessionId);
  }
- ctx.subscriptions.push(v.commands.registerCommand('rshell.add',()=>edit()),v.commands.registerCommand('rshell.open',()=>v.commands.executeCommand('rshell.workspace.focus')));
+ ctx.subscriptions.push(v.commands.registerCommand('rshell.files',()=>transfer()),v.commands.registerCommand('rshell.add',()=>edit()),v.commands.registerCommand('rshell.open',()=>v.commands.executeCommand('rshell.workspace.focus')));
  ctx.subscriptions.push(v.window.registerWebviewViewProvider('rshell.workspace',{resolveWebviewView(w){
   view=w;viewReady=false;w.webview.options={enableScripts:true,localResourceRoots:[ctx.extensionUri]};
   const uri=p=>w.webview.asWebviewUri(v.Uri.joinPath(ctx.extensionUri,p)).toString(),nonce=randomBytes(16).toString('hex');
@@ -123,6 +123,7 @@ function activate(ctx) {
    const s=sessions.find(x=>x.id===m.id),i=instances.get(m.id);
    switch(m.type){
     case 'ready':viewReady=true;if(pendingEditor){post({type:'editSession',session:pendingEditor});pendingEditor=undefined;}post({type:'settings',settings:terminalSettings()});state();for(const x of instances.values())for(const data of x.history)post({type:'output',id:x.id,data});break;
+    case 'selectSession':if(s)selectedSession=s.id;break;
     case 'saveSession':await saveSession(m);break;
     case 'add':await edit();break;case 'edit':if(s)await edit(s);break;case 'connect':await connect(s);break;
     case 'delete':if(s&&await v.window.showWarningMessage(t`删除 ${s.name}？`,{modal:true},t('删除'))===t('删除')){const next=sessions.filter(x=>x.id!==s.id);await ctx.globalState.update('sessions',next);sessions=next;await ctx.secrets?.delete(passwordKey(s));state();}break;
@@ -133,7 +134,7 @@ function activate(ctx) {
      case 'paste':if(i?.stream){const text=await v.env.clipboard.readText();if(instances.get(i.id)===i)post({type:'paste',id:i.id,text});}break;
      case 'input':if(i?.stream&&typeof m.data==='string')i.stream.write(m.data);break;
     case 'resize':if(i?.stream&&Number.isInteger(m.rows)&&Number.isInteger(m.cols)&&m.rows>0&&m.cols>0&&m.rows<1000&&m.cols<1000)i.stream.setWindow(m.rows,m.cols,0,0);break;
-    case 'transfer':await transfer(i||[...instances.values()].find(x=>x.session.id===s?.id&&x.status==='已连接'));break;
+    case 'transfer':await transfer(i||[...instances.values()].find(x=>x.session.id===s?.id&&x.status==='已连接'),s?.id||i?.session.id||selectedSession);break;
    }
   }catch(e){v.window.showErrorMessage(`RShell: ${e.message}`);}});
  }},{webviewOptions:{retainContextWhenHidden:true}}));

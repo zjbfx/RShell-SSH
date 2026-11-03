@@ -1,16 +1,16 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const stat={isSymbolicLink:()=>false,isDirectory:()=>false,isFile:()=>true};
-async function fixture(connectSession){
+async function fixture(connectSession,noInstance=false){
  const {Readable,Writable}=require('node:stream');let received='';
  let handler,dispose,ended=false;const messages=[];
- const sftp={createReadStream:()=>Readable.from(['remote payload']),createWriteStream:()=>new Writable({write(chunk,enc,cb){received+=chunk.toString();cb();}}),realpath:(p,cb)=>cb(null,'/home/test'),readdir:(p,cb)=>p==='/missing'?cb(Error('not found')):cb(null,p==='/home/test'?[{filename:'remote.txt',attrs:stat}]:[]),lstat:(p,cb)=>(p.endsWith('skip.txt')||p==='/home/test/remote.txt')?cb(null,stat):cb(Object.assign(Error('missing'),{code:2})),fastPut:(src,dest,opts,cb)=>{if(src.endsWith('fail.txt'))return cb(Error('permission denied'));opts.step(10,10,10);cb();},end:()=>{ended=true;}};
+ const sftp={mkdir:(p,cb)=>cb(),createReadStream:()=>Readable.from(['remote payload']),createWriteStream:()=>new Writable({write(chunk,enc,cb){received+=chunk.toString();cb();}}),realpath:(p,cb)=>cb(null,'/home/test'),readdir:(p,cb)=>p==='/missing'?cb(Error('not found')):cb(null,p==='/home/test'?[{filename:'remote.txt',attrs:stat}]:[]),lstat:(p,cb)=>(p.endsWith('skip.txt')||p==='/home/test/remote.txt')?cb(null,stat):cb(Object.assign(Error('missing'),{code:2})),fastPut:(src,dest,opts,cb)=>{if(src.endsWith('fail.txt'))return cb(Error('permission denied'));opts.step(10,10,10);cb();},end:()=>{ended=true;}};
  const panel={webview:{cspSource:'local',asWebviewUri:p=>p,postMessage:m=>messages.push(structuredClone(m)),onDidReceiveMessage:f=>handler=f},onDidDispose:f=>dispose=f};
- const v={window:{createWebviewPanel:()=>panel,showWarningMessage:async()=>undefined},ViewColumn:{Active:1},Uri:{joinPath:(_,a,b)=>b||a},env:{language:'zh-cn'}};
- const local={readdir:async()=>['ok.txt','skip.txt','fail.txt'].map(name=>({name,isDirectory:()=>false,isSymbolicLink:()=>false})),lstat:async()=>stat};
- const sandbox={module:{exports:{}},process,Date,require:n=>n==='vscode'?v:n==='node:fs/promises'?local:n==='./local-directory'?require('../src/local-directory'):n==='../media/i18n'?require('../media/i18n'):require(n)};
+ const v={window:{createWebviewPanel:()=>panel,showOpenDialog:async()=>[{fsPath:require('node:path').resolve('ok.txt')}],showWarningMessage:async()=>undefined},ViewColumn:{Active:1},Uri:{joinPath:(_,a,b)=>b||a},env:{language:'zh-cn'}};
+ const realFs=require('node:fs/promises');const local={...realFs,readdir:async(dir,opts)=>dir.includes('rshell-drop-')?realFs.readdir(dir,opts):['ok.txt','skip.txt','fail.txt'].map(name=>({name,isDirectory:()=>false,isSymbolicLink:()=>false})),lstat:async p=>p.includes('rshell-drop-')?realFs.lstat(p):stat};
+ const sandbox={module:{exports:{}},process,Date,Buffer,require:n=>n==='vscode'?v:n==='node:fs/promises'?local:n==='./local-directory'?require('../src/local-directory'):n==='../media/i18n'?require('../media/i18n'):require(n)};
  vm.runInNewContext(fs.readFileSync('src/transfer.js','utf8'),sandbox);
  const other={id:'other',status:'已连接',name:'other',session:{name:'other'},client:{sftp:cb=>cb(null,{...sftp,realpath:(p,cb)=>cb(null,'/target')})}};
- await sandbox.module.exports.openTransfer({extensionUri:'root',subscriptions:[]},{status:'已连接',name:'test',session:{name:'test',host:'127.0.0.1',port:22},client:{sftp:cb=>cb(null,sftp)}},()=>[other],connectSession?async id=>{if(id==='other')return other;throw Error('connection refused');}:undefined);
+ await sandbox.module.exports.openTransfer({extensionUri:'root',subscriptions:[]},noInstance?undefined:{status:'已连接',name:'test',session:{name:'test',host:'127.0.0.1',port:22},client:{sftp:cb=>cb(null,sftp)}},()=>[other],connectSession?async id=>{if(id==='other')return other;throw Error('connection refused');}:undefined);
  await handler({type:'ready'});
  return {send:handler,messages,dispose,get ended(){return ended;},get received(){return received;}};
 }
@@ -38,7 +38,7 @@ test('unavailable endpoint leaves existing pane usable',async()=>{
 
 test('endpoint selectors unlock after switching without a transfer',()=>{
  const source=fs.readFileSync('media/files.js','utf8');
- const listener=source.split('\n').find(line=>line.startsWith("window.addEventListener('message'"));
+ const listener=source.split('\n').find(line=>line.startsWith("window.addEventListener('message'")&&line.includes("render(m)"));
  let receive;const selectors=[{disabled:false},{disabled:false}];
  const sandbox={busy:false,window:{addEventListener:(_,fn)=>receive=fn},document:{body:{classList:{toggle(){}}},querySelectorAll:()=>selectors},send(){},render(){selectors[0]={disabled:sandbox.busy};},renderTasks(){}};
  vm.runInNewContext(listener,sandbox);
@@ -60,4 +60,22 @@ test('saved session selection connects on demand and preserves pane on failure',
  assert.match(x.messages.at(-2).text,/切换失败.*connection refused/);
  await x.send({type:'browse',side:'local'});
  assert.equal(x.messages.at(-1).path,'/target');
+});
+
+
+test('native file picker upload copies to the selected endpoint',async()=>{
+ const x=await fixture();await x.send({type:'upload',side:'remote',folders:false});
+ const task=x.messages.filter(m=>m.type==='tasks').at(-1).tasks[0];
+ assert.equal(task.name,'ok.txt');assert.equal(task.status,'成功');
+ assert.equal(x.messages.filter(m=>m.type==='busy').at(-1).value,false);
+});
+
+test('file transfer opens without a connected instance',async()=>{
+ const x=await fixture(true,true);
+ const listings=x.messages.filter(m=>m.type==='listing');
+ assert.equal(listings.length,2);
+ assert.ok(listings.every(m=>m.isLocal));
+ assert.ok(listings.every(m=>m.endpoints.some(e=>e.id==='other')));
+ await x.send({type:'endpoint',side:'remote',id:'other'});
+ assert.equal(x.messages.filter(m=>m.type==='listing').at(-1).path,'/target');
 });
