@@ -7,22 +7,26 @@ function control(text,title,fn){const b=document.createElement('button');b.type=
 function navigate(side,path){send('browse',{side,path});}
 function render(m){
  const nav=navigation[m.side];
+ if(nav.endpoint!==m.endpoint){nav.back=[];nav.forward=[];nav.recent=[];nav.current=undefined;nav.endpoint=m.endpoint;}
  if(nav.current&&nav.current!==m.path){if(nav.pending==='back'){nav.back.pop();nav.forward.push(nav.current);}else if(nav.pending==='forward'){nav.forward.pop();nav.back.push(nav.current);}else{nav.back.push(nav.current);nav.forward=[];}}
  nav.pending=undefined;nav.current=m.path;nav.recent=[m.path,...nav.recent.filter(p=>p!==m.path)].slice(0,20);
 
  const section=document.getElementById(m.side);section.replaceChildren();selected[m.side].clear();
  const heading=document.createElement('div');heading.className='pane-heading';
- const title=document.createElement('h3');title.textContent=m.side==='local'?'本地文件':t('远程 · ')+(m.connection?.name||'SSH');
- const subtitle=document.createElement('div');subtitle.className='pane-subtitle';subtitle.textContent=m.side==='local'?'本机文件系统':(m.connection?.host||'')+':'+(m.connection?.port||22);heading.append(title,subtitle);
+ const title=document.createElement('h3');title.textContent=m.isLocal?'本地文件':t('远程 · ')+(m.connection?.name||'SSH');
+ const subtitle=document.createElement('div');subtitle.className='pane-subtitle';subtitle.textContent=m.isLocal?'本机文件系统':(m.connection?.host||'')+':'+(m.connection?.port||22);heading.append(title,subtitle);
+ const endpoint=document.createElement('select');endpoint.className='endpoint-select';endpoint.setAttribute('aria-label','选择文件端点');
+ for(const item of m.endpoints||[]){const o=document.createElement('option');o.value=item.id;o.textContent=item.name;endpoint.append(o);}
+ endpoint.value=m.endpoint||'';endpoint.disabled=busy;endpoint.onchange=()=>{if(!busy)send('endpoint',{side:m.side,id:endpoint.value});endpoint.value=m.endpoint||'';};heading.append(endpoint);
  const bar=document.createElement('form'),input=document.createElement('input');input.value=m.path;input.setAttribute('aria-label',title.textContent+t('路径'));const go=document.createElement('button');go.textContent=t('转到');go.className='secondary';bar.append(input,go);bar.onsubmit=e=>{e.preventDefault();send('browse',{side:m.side,path:input.value});};
  const toolbar=document.createElement('div');toolbar.className='navigation';toolbar.setAttribute('role','toolbar');toolbar.setAttribute('aria-label',m.side==='local'?'本地导航':t('远程导航'));
  const back=control('←',t('后退'),()=>{nav.pending='back';navigate(m.side,nav.back.at(-1));});back.disabled=!nav.back.length;
  const forward=control('→',t('前进'),()=>{nav.pending='forward';navigate(m.side,nav.forward.at(-1));});forward.disabled=!nav.forward.length;
  toolbar.append(back,forward,control('↑',t('上级目录'),()=>send('browse',{side:m.side,name:'..'})),control('⌂',t('主目录'),()=>send('browse',{side:m.side,action:'home'})),control('↻',t('刷新'),()=>send('browse',{side:m.side})));
- if(m.side==='local')toolbar.append(control(t('选择文件夹'),t('选择本地文件夹'),()=>send('browse',{side:m.side,action:'pick'})));
+ if(m.isLocal)toolbar.append(control(t('选择文件夹'),t('选择本地文件夹'),()=>send('browse',{side:m.side,action:'pick'})));
  const recent=document.createElement('select');recent.title=t('最近访问目录');recent.setAttribute('aria-label',t('最近访问目录'));for(const p of nav.recent){const o=document.createElement('option');o.value=p;o.textContent=p;recent.append(o);}recent.onchange=()=>navigate(m.side,recent.value);input.setAttribute('list','recent-'+m.side);const history=document.createElement('datalist');history.id='recent-'+m.side;for(const p of nav.recent){const o=document.createElement('option');o.value=p;history.append(o);}bar.append(history);
  const crumbs=document.createElement('div');crumbs.className='breadcrumbs';
- const slash=String.fromCharCode(92),windows=m.side==='local'&&m.path.includes(slash),separator=windows?slash:'/';
+ const slash=String.fromCharCode(92),windows=m.isLocal&&m.path.includes(slash),separator=windows?slash:'/';
  const parts=m.path.split(/[\\/]+/).filter(Boolean);let current='',root='';
  if(m.path.startsWith(slash+slash)){root=slash+slash+parts.splice(0,2).join(slash)+slash;}
  else if(windows||/^[A-Za-z]:/.test(m.path)){root=parts.shift()+separator;}
@@ -38,17 +42,17 @@ function render(m){
   row.ondragstart=e=>{if(busy){e.preventDefault();return;}const names=selected[m.side].has(entry.name)?[...selected[m.side]]:[entry.name];e.dataTransfer.setData('application/x-rshell-files',JSON.stringify({from:m.side,names}));e.dataTransfer.effectAllowed='copy';};
   row.onkeydown=e=>{if(e.key==='Enter'&&entry.directory)send('browse',{side:m.side,name:entry.name});};list.append(row);
  }
- const transfer=document.createElement('button');transfer.textContent=m.side==='local'?'上传选中 →':t('← 下载选中');transfer.onclick=()=>{if(!busy&&selected[m.side].size)send('transfer',{from:m.side,names:[...selected[m.side]]});};
+ const transfer=document.createElement('button');transfer.textContent=m.side==='local'?'传输选中 →':'← 传输选中';transfer.onclick=()=>{if(!busy&&selected[m.side].size)send('transfer',{from:m.side,names:[...selected[m.side]]});};
  transfer.className='transfer-action';toolbar.append(transfer);section.append(heading,toolbar,bar,crumbs,list);
  section.ondragover=e=>{if(!busy&&[...e.dataTransfer.types].includes('application/x-rshell-files')){e.preventDefault();e.dataTransfer.dropEffect='copy';section.classList.add('drop-target');}};
  section.ondragleave=e=>{if(!section.contains(e.relatedTarget))section.classList.remove('drop-target');};
  section.ondrop=e=>{e.preventDefault();section.classList.remove('drop-target');if(busy)return;try{const data=JSON.parse(e.dataTransfer.getData('application/x-rshell-files'));if(data.from!==m.side)send('transfer',data);}catch{}};
 }
-window.addEventListener('message',({data:m})=>{if(m.type==='listing')render(m);if(m.type==='tasks')renderTasks(m.tasks);if(m.type==='status')document.getElementById('status').textContent=m.text;if(m.type==='busy'){busy=m.value;document.body.classList.toggle('busy',busy);}});send('ready',{});
+window.addEventListener('message',({data:m})=>{if(m.type==='listing')render(m);if(m.type==='tasks')renderTasks(m.tasks);if(m.type==='status')document.getElementById('status').textContent=m.text;if(m.type==='busy'){busy=m.value;document.body.classList.toggle('busy',busy);for(const select of document.querySelectorAll('.endpoint-select'))select.disabled=busy;}});send('ready',{});
 
 function renderTasks(tasks){
  const list=document.getElementById('task-list');list.replaceChildren();
- for(const task of tasks){const row=document.createElement('tr');row.className=task.status==='失败'?'failed':task.status==='成功'?'success':'';for(const text of [task.name,task.from==='local'?'上传 ↑':t('下载 ↓'),task.dest,t(task.status),task.detail]){const cell=document.createElement('td');cell.textContent=text;cell.title=text;row.append(cell);}list.append(row);}
+ for(const task of tasks){const row=document.createElement('tr');row.className=task.status==='失败'?'failed':task.status==='成功'?'success':'';for(const text of [task.name,t(task.sourceHost)+' → '+t(task.targetHost),task.dest,t(task.status),task.detail]){const cell=document.createElement('td');cell.textContent=text;cell.title=text;row.append(cell);}list.append(row);}
  const count=status=>tasks.filter(t=>t.status===status).length;
  document.getElementById('task-summary').textContent=t`共 ${tasks.length} 项 · 等待 ${count('等待中')} · 传输中 ${count('传输中')} · 成功 ${count('成功')} · 有跳过 ${count('完成（有跳过）')} · 失败 ${count('失败')}`;
 }

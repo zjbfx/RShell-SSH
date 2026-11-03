@@ -43,11 +43,11 @@ function activate(ctx) {
    state();post({type:'sessionSaved'});
   }catch(e){post({type:'sessionError',error:e.message});v.window.showErrorMessage?.('RShell: '+e.message);}
  }
- async function connect(s, forcePassword=false) {
+ async function connect(s, forcePassword=false, forTransfer=false) {
   if(!s)return;
   const options={host:s.host,port:s.port,username:s.user,keepaliveInterval:15000,readyTimeout:30000};
   let password;
-  if(s.identity&&!forcePassword){try{options.privateKey=await fs.readFile(s.identity);}catch(error){const action=await v.window.showWarningMessage(t('无法读取私钥，请修改连接属性或使用密码。'),t('修改连接属性'),t('使用新密码'));if(action===t('修改连接属性'))await edit(s);if(action===t('使用新密码'))return connect(s,true);return;}const p=await v.window.showInputBox({title:t('私钥口令（无口令则留空）'),password:true,ignoreFocusOut:true});if(p===undefined)return;options.passphrase=p;}
+  if(s.identity&&!forcePassword){try{options.privateKey=await fs.readFile(s.identity);}catch(error){const action=await v.window.showWarningMessage(t('无法读取私钥，请修改连接属性或使用密码。'),t('修改连接属性'),t('使用新密码'));if(action===t('修改连接属性'))await edit(s);if(action===t('使用新密码'))return connect(s,true,forTransfer);return;}const p=await v.window.showInputBox({title:t('私钥口令（无口令则留空）'),password:true,ignoreFocusOut:true});if(p===undefined)return;options.passphrase=p;}
   else {password=await loadPassword(ctx.secrets,s,forcePassword,options=>v.window.showInputBox(options));if(password===undefined)return;options.password=password;}
   options.hostHash='sha256';options.hostVerifier=(hash,cb)=>{
    const key=`host:${s.host}:${s.port}`,known=ctx.globalState.get(key);
@@ -57,25 +57,29 @@ function activate(ctx) {
   };
   const used=new Set([...instances.values()].map(i=>i.name));let name=s.name,index=1;while(used.has(name)){name=s.name+'('+index+')';index++;}
   const client=new Client(),i={id:randomUUID(),name,session:{...s},client,status:'连接中',history:[],historyBytes:0};
-  instances.set(i.id,i);active=i.id;state();
+  let settle;const result=forTransfer?new Promise(resolve=>settle=resolve):undefined;
+  if(forTransfer){i.transferOnly=true;ctx.subscriptions.push({dispose:()=>client.destroy()});}else{instances.set(i.id,i);active=i.id;state();}
   const output=data=>{if(!instances.has(i.id))return;const encoded=data.toString('base64');i.history.push(encoded);i.historyBytes+=encoded.length;while(i.historyBytes>2*1024*1024&&i.history.length>1)i.historyBytes-=i.history.shift().length;post({type:'output',id:i.id,data:encoded});};
   client.on('ready',()=>{
-   if(!instances.has(i.id)){client.destroy();return;}
+   if(!forTransfer&&!instances.has(i.id)){client.destroy();return;}
    if(password!==undefined&&sessions.some(current=>passwordKey(current)===passwordKey(s)))rememberPassword(ctx.secrets,s,password).catch(()=>v.window.showWarningMessage(t('SSH 已连接，但密码未能保存到安全凭据存储，下次连接需重新输入。')));
+   if(forTransfer){i.status='已连接';settle({instance:i});return;}
    client.shell({term:'xterm-256color',cols:100,rows:30},(err,stream)=>{
-   if(err){i.status='错误';i.error=err.message;state();client.end();return;}i.stream=stream;i.status='已连接';state();stream.on('data',output);stream.stderr.on('data',output);stream.on('close',()=>client.end());
+   if(err){i.status='错误';i.error=err.message;state();client.end();settle?.({error:err});return;}i.stream=stream;i.status='已连接';state();settle?.({instance:i});stream.on('data',output);stream.stderr.on('data',output);stream.on('close',()=>client.end());
   });});
   client.on('error',err=>{
-   if(!instances.has(i.id))return;
+   if(!forTransfer&&!instances.has(i.id))return;
    i.status=err.level==='client-authentication'?'认证失败':'错误';i.error=err.message;state();
+   if(forTransfer){settle({error:err});client.destroy();return;}
    if(err.level==='client-authentication'){
     v.window.showWarningMessage(t('SSH 认证失败，请修改连接属性或输入新密码。'),t('修改连接属性'),t('使用新密码')).then(async action=>{
      if(action===t('修改连接属性'))await edit(sessions.find(x=>x.id===s.id)||s);
      if(action===t('使用新密码'))await connect(s,true);
     }).catch(e=>v.window.showErrorMessage('RShell: '+e.message));
    }
-  });client.on('close',()=>{if(!i.status.startsWith('错误')&&i.status!=='认证失败')i.status='已断开';state();});
-  try{client.connect(options);}catch(error){i.status='错误';i.error=error.message;state();client.destroy();const action=await v.window.showWarningMessage(t('连接参数无效，请修改连接属性或使用密码。'),t('修改连接属性'),t('使用新密码'));if(action===t('修改连接属性'))await edit(s);if(action===t('使用新密码'))await connect(s,true);}
+  });client.on('close',()=>{settle?.({error:Error('SSH 连接已关闭')});if(!i.status.startsWith('错误')&&i.status!=='认证失败')i.status='已断开';state();});
+  try{client.connect(options);}catch(error){i.status='错误';i.error=error.message;state();client.destroy();if(forTransfer){settle({error});return result;}const action=await v.window.showWarningMessage(t('连接参数无效，请修改连接属性或使用密码。'),t('修改连接属性'),t('使用新密码'));if(action===t('修改连接属性'))await edit(s);if(action===t('使用新密码'))await connect(s,true);}
+  return result;
  }
  async function closeInstance(id) {
   const instance=instances.get(id);if(!instance||closing.has(id))return;
@@ -92,7 +96,22 @@ function activate(ctx) {
    if(instance.status==='连接中')instance.client.destroy();else instance.client.end();
   }finally{closing.delete(id);}
  }
- async function transfer(i) {await openTransfer(ctx,i);}
+ async function transfer(i) {
+  await openTransfer(ctx,i,()=>sessions,async id=>{
+   const session=sessions.find(s=>s.id===id);if(!session)throw Error('会话不存在');
+   const existing=[...instances.values()].find(x=>x.session.id===id&&x.status==='已连接'&&passwordKey(x.session)===passwordKey(session));
+   if(existing)return existing;
+   let force=false;
+   while(true){
+    const result=await connect(session,force,true);
+    if(result?.instance)return result.instance;
+    if(result?.error?.level!=='client-authentication')throw result?.error||Error('已取消连接');
+    const action=await v.window.showWarningMessage(t('SSH 认证失败，请重新输入密码。'),t('使用新密码'));
+    if(action!==t('使用新密码'))throw Error('已取消密码输入');
+    force=true;
+   }
+  });
+ }
  ctx.subscriptions.push(v.commands.registerCommand('rshell.add',()=>edit()),v.commands.registerCommand('rshell.open',()=>v.commands.executeCommand('rshell.workspace.focus')));
  ctx.subscriptions.push(v.window.registerWebviewViewProvider('rshell.workspace',{resolveWebviewView(w){
   view=w;viewReady=false;w.webview.options={enableScripts:true,localResourceRoots:[ctx.extensionUri]};

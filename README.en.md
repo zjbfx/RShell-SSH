@@ -60,3 +60,5 @@ Set `rshell.transfer.localDirectoryMode` to `home` (default), `workspace`, or `c
 Each instance has a × close button. Connecting/connected instances require confirmation before disconnecting SSH and its file transfers; disconnected instances are removed immediately. The context menu and Delete key use the same confirmation rule.
 
 Terminal shortcuts: Ctrl + mouse wheel adjusts the current terminal font size (6–72 px). Ctrl+Shift+C copies the selection; Ctrl+Shift+V pastes the clipboard into the terminal.
+
+Both transfer panes can select the local filesystem or a connected SSH instance. Remote-to-remote files and directories stream through this computer without temporary copies. Endpoint switching is locked during transfers; refresh a pane to update the connected-instance list.
