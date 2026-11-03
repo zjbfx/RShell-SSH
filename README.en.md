@@ -58,3 +58,5 @@ See [Contributing](CONTRIBUTING.md) and [Publishing](docs/PUBLISHING.md). Licens
 Set `rshell.transfer.localDirectoryMode` to `home` (default), `workspace`, or `custom`. Custom mode reads the absolute path from `rshell.transfer.localDirectory`, with `~` expansion. Workspace mode prefers the active file's local project folder, otherwise the first local workspace folder. Missing/unreadable paths or unavailable local workspaces fall back to the user home directory with a warning. Changes apply when opening a new transfer window, without reloading. Both user and workspace settings are supported. The Home toolbar action still opens the user home directory.
 
 Each instance has a × close button. Connecting/connected instances require confirmation before disconnecting SSH and its file transfers; disconnected instances are removed immediately. The context menu and Delete key use the same confirmation rule.
+
+Terminal shortcuts: Ctrl + mouse wheel adjusts the current terminal font size (6–72 px). Ctrl+Shift+C copies the selection; Ctrl+Shift+V pastes the clipboard into the terminal.

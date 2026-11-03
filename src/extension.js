@@ -110,7 +110,9 @@ function activate(ctx) {
     case 'duplicate':if(i)await connect(i.session);break;
     case 'select':if(i){active=i.id;state();}break;
     case 'close':await closeInstance(m.id);break;
-    case 'input':if(i?.stream&&typeof m.data==='string')i.stream.write(m.data);break;
+    case 'copy':if(i&&typeof m.text==='string')await v.env.clipboard.writeText(m.text);break;
+     case 'paste':if(i?.stream){const text=await v.env.clipboard.readText();if(instances.get(i.id)===i)post({type:'paste',id:i.id,text});}break;
+     case 'input':if(i?.stream&&typeof m.data==='string')i.stream.write(m.data);break;
     case 'resize':if(i?.stream&&Number.isInteger(m.rows)&&Number.isInteger(m.cols)&&m.rows>0&&m.cols>0&&m.rows<1000&&m.cols<1000)i.stream.setWindow(m.rows,m.cols,0,0);break;
     case 'transfer':await transfer(i||[...instances.values()].find(x=>x.session.id===s?.id&&x.status==='已连接'));break;
    }
